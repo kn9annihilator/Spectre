@@ -62,13 +62,13 @@ def detect_infrastructure(target):
     try:
         # Use dnspython to query for all 'A' records
         answers = dns.resolver.resolve(target, 'A')
-        ips = [rdata.address for rdata in answers]
+        # --- THIS LINE IS CORRECTED ---
+        ips = [str(rdata) for rdata in answers]
         
         findings["dns_load_balancing"]["ips"] = ips
         if len(ips) > 1:
             findings["dns_load_balancing"]["detected"] = True
 
-    # --- THIS BLOCK IS CORRECTED ---
     except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, exception.Timeout) as e:
         print(f"Error during DNS resolution: {e}")
 
