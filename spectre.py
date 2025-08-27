@@ -1,5 +1,5 @@
 import click
-from spectre_engine.modules.waf_detector import detect_waf
+from spectre_engine.modules.firewall_profiler import run_scan # Add this line
 
 # This is the main command group, e.g., 'spectre'
 @click.group()
@@ -24,6 +24,7 @@ spectre.add_command(scan)
 # --- END OF FIX ---
 
 # This is our new command for firewall/port scanning
+# This is our new command for firewall/port scanning
 @scan.command()
 @click.argument('target')
 @click.option('--ports', default='1-1024', help='The port range to scan (e.g., 22,80,443 or 1-1024).')
@@ -37,13 +38,16 @@ def firewall(target, ports, profile, json):
     click.echo(f"    - Port Range: {ports}")
     click.echo(f"    - Scan Profile: {profile}")
 
-    # --- Placeholder for actual port scanning logic ---
+    # Map profile to the number of threads for speed
+    thread_map = {'stealth': 10, 'normal': 50, 'aggressive': 100}
+    num_threads = thread_map[profile]
+
+    # --- Call the firewall profiler module ---
+    open_ports_list = run_scan(target, ports, num_threads)
+
     results = {
         "target": target,
-        "open_ports": [
-            {"port": 80, "service": "http", "version": "nginx/1.18.0"},
-            {"port": 443, "service": "https", "version": "nginx/1.18.0"}
-        ]
+        "open_ports": open_ports_list
     }
 
     if json:
@@ -51,9 +55,11 @@ def firewall(target, ports, profile, json):
         click.echo(json_lib.dumps(results, indent=4))
     else:
         click.secho("\n[+] Open Ports Found:", fg='green', bold=True)
-        for port_info in results["open_ports"]:
-            click.echo(f"    - Port {port_info['port']}: {port_info['service']} ({port_info['version']})")
-
+        if not open_ports_list:
+            click.echo("    - None")
+        else:
+            for port_info in open_ports_list:
+                click.echo(f"    - Port {port_info['port']}: {port_info['banner'] if port_info['banner'] else 'No banner received'}")
 # This is a specific command, e.g., 'spectre scan waf'
 @scan.command()
 @click.argument('target')
